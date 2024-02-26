@@ -1,0 +1,639 @@
+---
+title: "Antibiotic"
+author: "Bashir Ssuna"
+date: "2023-10-28"
+output: html_document
+---
+
+
+```{r, echo=T, warning=FALSE}
+library(readxl)
+abx <- read_excel("D:/ACADEMIA/Research/Antibiotics/new/outcomes2.xls")
+
+colnames(abx)
+
+
+```
+
+```{r}
+library(tidyverse)
+library(viridis)
+library(hrbrthemes)
+library(scales)
+
+ggplot(abx, aes(x = age)) +
+  geom_histogram(binwidth = 1, fill = "red", color = "black", alpha = 0.7) +
+  theme_minimal() +
+  labs(title = "Distribution of Participants' age", x = "Participants' age", y = "Number of Participants")
+
+```
+
+```{r}
+str(abx$age)
+str(abx$study_arm)
+str(abx$Primary_outcome)
+```
+
+```{r}
+# Labeling outcome variables
+abx$Primary_outcome <- factor(abx$Primary_outcome, levels = c(0, 1), labels = c("No Infection", "Infection"))
+
+abx$Secondary_outcome <- factor(abx$Secondary_outcome, levels = c(0, 1), labels = c("No Infection", "Infection"))
+```
+
+
+Lets look at the distribution of age vs study arm and primary outcome
+
+
+```{r, warning=FALSE}
+plot_1 = abx %>%
+  ggplot( aes(x= study_arm, y=age, fill= Primary_outcome )) +
+    geom_boxplot(aes( color = study_arm)) +scale_fill_viridis(discrete = TRUE, alpha=0.4) +
+    geom_jitter(color="blue", size=0.5, alpha=0.5) +
+    theme_ipsum() +
+    theme(
+      legend.position="right",
+      plot.title = element_text(size=11), axis.text.x = element_text(size = 8)
+    ) +
+    ggtitle("Distribution of Participants' age according to Study arm and Primary Outcome") +
+    xlab("Study arm ")+ylab("Age of participants")+labs(fill = "Primary Outcome", color="Study arm")+scale_x_discrete(guide = guide_axis(n.dodge=1))
+
+print(plot_1)
+
+```
+
+Visualizing: Proportion of primary outcomes in each study arm
+
+```{r}
+# Compute the counts for each group combination
+counts <- as.data.frame(table(abx$Primary_outcome, abx$study_arm))
+
+# Calculate the total counts for each study_arm
+study_arm_totals <- table(abx$study_arm)
+
+# Calculate the proportions for each Primary_outcome within each study_arm
+counts$proportion <- counts$Freq / study_arm_totals[as.character(counts$Var2)]
+
+# Convert proportions to percentages and round off to 1 decimal place
+counts$percentage <- round(counts$proportion * 100, 1)
+
+# Convert the percentage to a label with "%" sign
+counts$percentage_label <- paste0(counts$percentage, "%")
+
+# Rename columns for clarity
+colnames(counts) <- c("Primary_outcome", "study_arm", "Freq", "proportion", "percentage", "percentage_label")
+
+# Plot using ggplot
+Plot4<- ggplot(counts, aes(x = Primary_outcome, y = Freq, fill = study_arm)) + 
+  geom_bar(stat = "identity", position = "dodge") + 
+  geom_text(aes(label = percentage_label, y = Freq/2), position = position_dodge(width = 0.9), vjust= -2.5) +
+  labs(title = "Proportion Participants accoring to Study arm and Primary outcome", 
+       x = "Primary outcome", 
+       y = "Proportion of patients", 
+       fill = "Study arm") +
+  theme_minimal()
+
+print(Plot4)
+```
+
+```{r}
+
+# Compute the counts for each group combination
+counts_sec <- as.data.frame(table(abx$Secondary_outcome, abx$study_arm))
+
+# Calculate the total counts for each study_arm
+study_arm_totals_sec <- table(abx$study_arm)
+
+# Calculate the proportions for each Secondary_outcome within each study_arm
+counts_sec$proportion <- counts_sec$Freq / study_arm_totals_sec[as.character(counts_sec$Var2)]
+
+# Convert proportions to percentages and round off to 1 decimal place
+counts_sec$percentage <- round(counts_sec$proportion * 100, 1)
+
+# Convert the percentage to a label with "%" sign
+counts_sec$percentage_label <- paste0(counts_sec$percentage, "%")
+
+# Rename columns for clarity
+colnames(counts_sec) <- c("Secondary_outcome", "study_arm", "Freq", "proportion", "percentage", "percentage_label")
+
+
+# Plot using ggplot
+plot2 <- ggplot(counts_sec, aes(x = Secondary_outcome, y = Freq, fill = study_arm)) + 
+  geom_bar(stat = "identity", position = "dodge") + 
+  geom_text(aes(label = percentage_label, y = Freq/2), position = position_dodge(width = 0.9), vjust= -2.5) +
+  labs(title = "Proportion Participants accoring to Study arm and Secondary outcome", 
+       x = "Secondary outcome", 
+       y = "Proportion of patients", 
+       fill = "Study arm") +
+  theme_minimal()
+
+print(plot2)
+```
+
+Lets create a dataframe for Outcomes and Followup periods to plot the proportions of outcomes per day
+
+```{r}
+
+# Create dataframe in R
+
+# Data
+follow_up_periods <- c("Day 1", "Day 2", "Day 3", "Day 4", "Day 5", "Day 6")
+total_participants <- c(260, 256, 247, 244, 244, 256)
+primary_outcome <- c(7, 7, 10, 6, 12, 15)
+secondary_outcome <- c(18, 12, 14, 11, 13, 16)
+
+# Create dataframe
+df <- data.frame(Follow_up_period = follow_up_periods, 
+                 Total_Participants = total_participants, 
+                 Primary_Outcome = primary_outcome, 
+                 Secondary_Outcome = secondary_outcome)
+
+# View dataframe
+print(df)
+
+
+```
+
+
+```{r}
+# Compute row with totals
+totals <- data.frame(Follow_up_period = "Total",
+                    Total_Participants = sum(df$Total_Participants),
+                    Primary_Outcome = sum(df$Primary_Outcome),
+                    Secondary_Outcome = sum(df$Secondary_Outcome))
+
+# Append the totals row to the original dataframe
+df_with_totals <- rbind(df, totals)
+
+# Display the dataframe with the totals row
+df_with_totals
+
+```
+
+
+```{r}
+# Compute percentages for primary and secondary outcomes and round to two decimal places
+df_with_totals$Primary_Percentage <- round((df_with_totals$Primary_Outcome / df_with_totals$Total_Participants) * 100, 2)
+
+df_with_totals$Secondary_Percentage <- round((df_with_totals$Secondary_Outcome / df_with_totals$Total_Participants) * 100, 2)
+
+df_with_totals
+df2 <- df_with_totals
+
+```
+
+
+```{r}
+df2
+colnames(df2)
+str(df2)
+
+```
+
+
+Plotting proportions of outcomes
+N.B: This is not the same as incidence
+
+
+```{r}
+
+Plot3<- ggplot(df2, aes(x = as.factor(Follow_up_period))) +
+  geom_line(aes(y = Primary_Percentage, color = "Primary Outcome", group = 1), size = 1) +
+  geom_line(aes(y = Secondary_Percentage, color = "Secondary Outcome", group = 2), size = 1, linetype = "dashed") +
+  
+  # Adding dots for each data point
+  geom_point(aes(y = Primary_Percentage, color = "Primary Outcome"), size = 3) +
+  geom_point(aes(y = Secondary_Percentage, color = "Secondary Outcome"), size = 3) +
+  
+  # Adding data labels for Primary_Percentage and Secondary_Percentage with "%" sign
+  geom_text(aes(y = Primary_Percentage, label = paste0(Primary_Percentage, "%")), vjust = 1.5, hjust = 0.5, size = 3) +
+  geom_text(aes(y = Secondary_Percentage, label = paste0(Secondary_Percentage, "%")), vjust = -0.5, hjust = 0.5, size = 3) +
+  
+  # Adjusting the y-axis limits
+  ylim(0, 7) +
+  
+  labs(title = "Study Outcomes over Follow-up Periods",
+       y = "Percentage of Participants", 
+       x = "Follow-up Period",
+       color = "Outcome") +
+  theme_minimal()
+
+print(Plot3)
+
+
+```
+Now lets look at the entire dataset
+
+```{r}
+abx2 <- read_excel("D:/ACADEMIA/Research/Antibiotics/All_data.xls")
+
+colnames(abx2)
+```
+
+Chi square for a crude association between exposure and primary outcome
+
+```{r}
+tab2 <- table(abx$study_arm2, abx$Primary_outcome)
+tab2
+chi<-chisq.test(tab2)
+fisher <- fisher.test(tab2)
+chi
+fisher
+
+```
+
+Chi square for a crude association between exposure and secondary outcome
+
+```{r}
+tab2 <- table(abx$study_arm2, abx$Secondary_outcome)
+tab2
+chi<-chisq.test(tab2)
+fisher <- fisher.test(tab2)
+chi
+fisher
+
+
+```
+
+Calculation of Incidence Rate Ratio of the primary outcome
+Incidence = (Total number of events)/(Total person time)
+Person Time = Number of followed-up individuals X days of follow-up
+
+```{r}
+# Calculate person-time for each arm
+person_time_intervention <-  c(130*1)+ (129*2)+ (117*3)+ (121*4)+ (119*5)+ (126*6)
+person_time_control <- c(130*1)+ (127*2)+ (130*3)+ (123*4)+ (125*5)+ (130*6)
+
+
+# Given data
+outcomes_intervention <- 14
+outcomes_control <- 20
+
+# Calculate incidence rates for each arm
+IR_control = outcomes_control/person_time_control
+IR_intervention = outcomes_intervention / person_time_intervention
+
+
+# Calculate incidence rate ratio
+IRR = IR_intervention / IR_control
+
+
+# Load necessary library
+#install.packages("epitools")
+#library(epitools)
+
+# Calculate 95% confidence intervals and p-value for IRR
+# Using irr function from epitools package
+#result = riskratio.wald(c(outcomes_intervention, outcomes_control), c(person_time_intervention, person_time_control))
+
+#list(IR_intervention = IR_intervention, IR_control = IR_control, IRR = IRR, CI = result$measure, p_value = result$p.value)
+
+Total_person_time = person_time_control+person_time_intervention
+
+person_time_intervention
+person_time_control
+Total_person_time
+
+IR_intervention*1000
+IR_control*1000
+IRR
+
+```
+
+95% CI for IRR
+
+```{r}
+# Given data
+outcomes_intervention <- 14
+outcomes_control <- 20
+person_time_intervention <-  c(130*1)+ (129*2)+ (117*3)+ (121*4)+ (119*5)+ (126*6)
+person_time_control <- c(130*1)+ (127*2)+ (130*3)+ (123*4)+ (125*5)+ (130*6)
+number_control = 130
+number_intervention = 130
+# Conduct the test
+test_result <- prop.test(x = c(outcomes_intervention, outcomes_control),
+                         n = c(number_intervention, number_control))
+
+# Extract the p-value and confidence interval
+proportion_difference <- (outcomes_intervention/130)*100 - (outcomes_control/130)*100
+
+p_value <- test_result$p.value
+conf_int <- (test_result$conf.int)*100
+
+# Print the results
+proportion_difference
+print(paste("P-value:", p_value))
+print(paste("95% CI for the difference between proportions:", conf_int[1], "to", conf_int[2]))
+
+
+```
+
+
+
+```{r}
+# Install and load the epiR package if you haven't already
+#if (!require(epiR)) {
+  
+    #install.packages("epiR")
+    #library(epiR)
+#}
+
+# load data
+Exposed_postive <- 20
+Exposed_negative <- 14
+Outcome_positive <- 130
+Outcome_negative <- 130
+
+# Calculate the incidence rate ratio (IRR) and its 95% confidence interval
+result <- epiR::epi.2by2(dat = matrix(c(outcomes_intervention, Outcome_negative - Exposed_negative,
+                                        outcomes_control, Outcome_positive - Exposed_postive),
+                                      nrow = 2, byrow = TRUE),
+                         method = "cohort.count")
+
+# Print the IRR and 95% CI
+print(result)
+
+
+```
+
+
+
+```{r}
+incidence_rate_intervention <- 5.44 / 1000 # per person-day
+incidence_rate_control <- 7.49 / 1000 # per person-day
+person_time_intervention <- 2574 # person-days
+person_time_control <- 2671 # person-days
+
+```
+
+
+
+```{r}
+# Calculate 95% confidence intervals for incidence rates
+ci_low_control = IR_control - 1.96 * sqrt(IR_control / person_time_control)
+ci_high_control = IR_control + 1.96 * sqrt(IR_control / person_time_control)
+
+ci_low_intervention = IR_intervention - 1.96 * sqrt(IR_intervention / person_time_intervention)
+ci_high_intervention = IR_intervention + 1.96 * sqrt(IR_intervention / person_time_intervention)
+
+list(
+  ci_control = c(ci_low_control, ci_high_control)*1000,
+  ci_intervention = c(ci_low_intervention, ci_high_intervention)*1000
+)
+
+
+```
+
+
+```{r}
+# Given data
+outcomes_intervention <- 22
+outcomes_control <- 24
+person_time_intervention <-  c(130*1)+ (129*2)+ (117*3)+ (121*4)+ (119*5)+ (126*6)
+person_time_control <- c(130*1)+ (127*2)+ (130*3)+ (123*4)+ (125*5)+ (130*6)
+
+# Create the 2x2 table
+table_data <- data.frame(
+  Study_Arm = c("Intervention", "Control"),
+  Number_of_Outcomes = c(outcomes_intervention, outcomes_control),
+  Person_time = c(person_time_intervention, person_time_control)
+)
+
+print(table_data)
+
+
+```
+
+
+Lets now analyze the data with outcomes only
+
+```{r}
+# Read the data from the CSV file
+outcomes <- read_excel("D:/ACADEMIA/Research/Antibiotics/outcomes.xlsx")
+colnames(outcomes)
+
+# Convert data from wide to long format for ggplot
+outcomes_long <- gather(outcomes, key = "Outcome", value = "Percentage", -`Follow-up period`)
+
+outcomes_long
+# Plot the line graph using ggplot2
+ggplot(outcomes_long, aes(x = `Follow-up period`, y = Percentage, color = Outcome, group = Outcome)) +
+  geom_line() +
+  geom_point() +geom_text(aes(label = Percentage), 
+            position = position_dodge(width = 0.9), 
+            vjust = -2.0, 
+            color = "black", 
+            size = 3.5) +
+  theme_minimal() +
+  labs(title = "Outcomes by Follow-up Period",
+       x = "Follow-up Period",
+       y = "Percentage") +
+  scale_color_brewer(palette = "Set1")  # This will use a color palette suitable for distinct colors
+
+
+```
+
+
+```{r}
+# Plot the bar graph using ggplot2
+ggplot(outcomes_long, aes(x = `Follow-up period`, y = Percentage, fill = Outcome)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  theme_minimal() +
+  labs(title = "Outcomes by Follow-up Period",
+       x = "Follow-up Period",
+       y = "Percentage") +
+  scale_fill_brewer(palette = "Set1") 
+
+```
+
+
+```{r}
+# Define the width for dodging
+dodge_width <- 0.7
+
+# Plot the bar graph using ggplot2
+ggplot(outcomes_long, aes(x = `Follow-up period`, y = Percentage, fill = Outcome)) +
+  geom_bar(stat = "identity", position = position_dodge(width = dodge_width), width = dodge_width)+ #+
+ # geom_text(aes(label = Percentage), 
+  #          position = position_dodge(width = dodge_width), 
+   #         vjust = -2.0, 
+    #        color = "black", 
+     #       size = 2.5) +
+  theme_minimal() +
+  labs(title = "Outcomes by Follow-up Period",
+       x = "Follow-up Period",
+       y = "Percentage") +
+  scale_fill_brewer(palette = "Set1")  # This will use a color palette suitable for distinct colors
+
+```
+
+
+```{r}
+# Create dataframe in R
+
+# Data
+follow_up_periods <- c("Day 1", "Day 2", "Day 3", "Day 4", "Day 5", "Day 6")
+total_participants <- c(260, 256*2, 247*3, 244*4, 244*5, 256*6)
+primary_outcome <- c(7, 7, 10, 6, 12, 15)
+secondary_outcome <- c(18, 12, 14, 11, 13, 16)
+
+# Create dataframe
+df <- data.frame(Follow_up_period = follow_up_periods, 
+                 Total_Participants = total_participants, 
+                 Primary_Outcome = primary_outcome, 
+                 Secondary_Outcome = secondary_outcome)
+
+# View dataframe
+print(df)
+
+```
+
+
+
+```{r}
+
+# Compute row with totals
+totals <- data.frame(Follow_up_period = "Total",
+                    Total_Participants = sum(df$Total_Participants),
+                    Primary_Outcome = sum(df$Primary_Outcome),
+                    Secondary_Outcome = sum(df$Secondary_Outcome))
+
+# Append the totals row to the original dataframe
+df_with_totals <- rbind(df, totals)
+
+# Display the dataframe with the totals row
+df_with_totals
+
+```
+
+
+```{r}
+# Compute percentages for primary and secondary outcomes and round to two decimal places
+df_with_totals$Primary_Percentage <- round((df_with_totals$Primary_Outcome / df_with_totals$Total_Participants) * 100, 2)
+
+df_with_totals$Secondary_Percentage <- round((df_with_totals$Secondary_Outcome / df_with_totals$Total_Participants) * 100, 2)
+
+df_with_totals
+df2 <- df_with_totals
+
+```
+
+
+```{r}
+
+# Compute percentages for primary and secondary outcomes and round to two decimal places
+df$Primary_Percentage <- round((df$Primary_Outcome / df$Total_Participants) * 100, 2)
+
+df$Secondary_Percentage <- round((df$Secondary_Outcome / df$Total_Participants) * 100, 2)
+
+
+```
+
+Plot of Incidence rates of primary outcome for every follow-up period in each study arm
+
+```{r}
+ggplot(df, aes(x = as.factor(Follow_up_period))) +
+  geom_line(aes(y = Primary_Percentage, color = "Primary Outcome", group = 1), size = 1) +
+  geom_line(aes(y = Secondary_Percentage, color = "Secondary Outcome", group = 2), size = 1, linetype = "dashed") +
+  
+  # Adding dots for each data point
+  geom_point(aes(y = Primary_Percentage, color = "Primary Outcome"), size = 2) +
+  geom_point(aes(y = Secondary_Percentage, color = "Secondary Outcome"), size = 2) +
+  
+  # Adding data labels for Primary_Percentage and Secondary_Percentage with "%" sign
+  geom_text(aes(y = Primary_Percentage, label = paste0(Primary_Percentage, "%")), vjust = 1.5, hjust = 0.5, size = 3) +
+  geom_text(aes(y = Secondary_Percentage, label = paste0(Secondary_Percentage, "%")), vjust = -0.5, hjust = 0.5, size = 3) +
+  
+  # Adjusting the y-axis limits
+  ylim(0, 7) +
+  
+  labs(title = "Incidence of Study Outcomes over Follow-up Periods",
+       y = "Incidence (%)", 
+       x = "Follow-up Period",
+       color = "Outcome") +
+  theme_minimal()
+
+
+```
+
+Lets combine primary and secondary outcomes per study arm on one graph
+
+```{r}
+# Create dataframe in R for incidence per study_arm
+
+# Data
+follow_up_periods <- c("Day 1", "Day 2", "Day 3", "Day 4", "Day 5", "Day 6")
+No_antibiotics <- c(130, 127*2, 130*3, 123*4, 125*5, 130*6)
+Antibiotics <- c(130, 129*2, 117*3, 121*4, 119*5, 126*6)
+primary_outcome <- c(3, 3, 7, 2, 9, 11)
+secondary_outcome <- c(4, 4, 3, 4, 3, 4)
+
+# Create dataframe
+df <- data.frame(Follow_up_period = follow_up_periods, 
+                 No_antibiotics = No_antibiotics,
+                 Antibiotics =Antibiotics,
+                 Primary_Outcome = primary_outcome, 
+                 Secondary_Outcome = secondary_outcome)
+
+# View dataframe
+print(df)
+
+```
+
+
+```{r}
+# Compute percentages for primary and secondary outcomes and round to two decimal places in Control
+df$Primary_Percentage_noabx <- round((df$Primary_Outcome / df$No_antibiotics) * 100, 2)
+
+df$Secondary_Percentage_noabx <- round((df$Secondary_Outcome / df$No_antibiotics) * 100, 2)
+
+# Compute percentages for primary and secondary outcomes and round to two decimal placesin Intervention
+df$Primary_Percentage_abx <- round((df$Primary_Outcome / df$Antibiotics) * 100, 2)
+
+df$Secondary_Percentage_abx <- round((df$Secondary_Outcome / df$Antibiotics) * 100, 2)
+
+df
+```
+```{r}
+# Convert data from wide to long format for ggplot
+#df_long <- gather(Study_arm, key = "Study_arm", value = "Person_time", -`Follow-up period`)
+
+# Gather the variables into Study_arm
+gathered_data <- gather(df, key = "Study_arm", value = "Person_time", No_antibiotics, Antibiotics)
+gathered_data
+
+```
+
+
+```{r}
+ggplot(df, aes(x = as.factor(Follow_up_period))) +
+  geom_line(aes(y = Primary_Percentage_abx, color = "Primary Outcome antibiotics arm", group = 1), size = 1) +
+  geom_line(aes(y = Primary_Percentage_noabx, color = "Primary Outcome No antibiotics arm", group = 2), size = 1, linetype = "dashed") +
+  
+  # Adding dots for each data point
+  geom_point(aes(y = Primary_Percentage_abx, color = "Primary Outcome antibiotics arm"), size = 2) +
+  geom_point(aes(y = Primary_Percentage_noabx, color = "Primary Outcome No antibiotics arm"), size = 2) +
+   geom_line(aes(y = Secondary_Percentage_abx, color = "Secondary Outcome antibiotics arm", group = 1), size = 1) +
+  geom_line(aes(y = Secondary_Percentage_noabx, color = "Secondary Outcome No antibiotics arm", group = 2), size = 1, linetype = "dashed") +
+  
+  # Adding dots for each data point
+  geom_point(aes(y = Secondary_Percentage_abx, color = "Secondary Outcome antibiotics arm"), size = 2) +
+  geom_point(aes(y = Secondary_Percentage_noabx, color = "Secondary Outcome No antibiotics arm"), size = 2) +
+  
+  # Adding data labels for Primary_Percentage and Secondary_Percentage with "%" sign
+  #geom_text(aes(y = Primary_Percentage_abx, label = paste0(Primary_Percentage_abx, "%")), vjust = -0.5, hjust = 0.5, size = 3) +
+  #geom_text(aes(y = Primary_Percentage_noabx, label = paste0(Primary_Percentage_noabx, "%")), vjust = -0.5, hjust = 0.5, size = 3) +
+  
+  # Adjusting the y-axis limits
+  ylim(0, 7) +
+  
+  labs(title = "Incidence of Outcomes over Follow-up Periods in study arms",
+       y = "Incidence (%)", 
+       x = "Follow-up Period",
+       color = "Study arm") +
+  theme_minimal()
+
+
+
+```
+
